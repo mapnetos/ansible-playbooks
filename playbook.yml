@@ -32,7 +32,7 @@
 
     - name: Select snapshots older than threshold
       ansible.builtin.set_fact:
-        filtered_snapshots: "{{ filtered_snapshots + [item] }}"
+        filtered_snapshots: "{{ filtered_snapshots + [{{ item | items2list }}] }}"
       loop: "{{ snapshots_info | default([]) }}"
       when:
         - item.creation_time is defined
