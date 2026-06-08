@@ -1,95 +1,152 @@
-- name:  Report all VMware VM snapshots
+---
+- name: Report all VMware VM snapshots
+  hosts: localhost
+  gather_facts: false
+
   collections:
     - community.vmware
-    - ansible.windows
-  hosts: all
+    - community.general
+
   tasks:
-    - name: Set threshold date (in epoch seconds for logic and readable string for email)
+
+    - name: Set threshold date
       ansible.builtin.set_fact:
-        threshold_epoch: "{{ now().strftime('%s') | int - (days_threshold | int * 86400) }}"
-        readable_threshold_date: "{{ now() | date('-' + days_threshold | string + ' days', '%Y-%m-%d %H:%M:%S %Z') }}"
-        
+        threshold_epoch: "{{ (now().timestamp() | int) - ((days_threshold | int) * 86400) }}"
+        readable_threshold_date: >-
+          {{
+            (
+              (now().timestamp() | int)
+              - ((days_threshold | int) * 86400)
+            ) | strftime('%Y-%m-%d %H:%M:%S')
+          }}
+
     - name: Gather all snapshot information across the datacenter
       community.vmware.vmware_all_snapshots_info:
-        validate_certs: no
         datacenter: "{{ datacenter }}"
+        validate_certs: false
       register: snapshots_info
-    # 3. Filtra os snapshots mais antigos que a data limite (comparação de epoch)
-    - name: Filter snapshots older than the threshold ({{ days_threshold }} days)
-      ansible.builtin.set_fact:
-        filtered_snapshots: |
-          {% set old_snapshots = [] %}
-          {% for snapshot in snapshot_info.vmware_all_snapshots_info %}
-            {# Converte a creation_time do vCenter para epoch segundos para comparação de inteiros #}
-            {% set snap_epoch = snapshot.creation_time | to_datetime('%Y-%m-%dT%H:%M:%S.%f%z') | strftime('%s') | int %}
-            {# Se o tempo do snapshot for menor que o limite (mais antigo), inclui no relatório #}
-            {% if snap_epoch < threshold_epoch %}
-              {% set _ = old_snapshots.append(snapshot) %}
-            {% endif %}
-          {% endfor %}
-          {{ old_snapshots }}
-      when: snapshot_info.vmware_all_snapshots_info is defined and snapshot_info.vmware_all_snapshots_info | length > 0
 
-    # 4. Gera as linhas da tabela HTML (usando a lista filtrada)
-    - name: Generate HTML table rows from filtered snapshot data
+    - name: Initialize filtered snapshot list
+      ansible.builtin.set_fact:
+        filtered_snapshots: []
+
+    - name: Filter snapshots older than threshold
+      ansible.builtin.set_fact:
+        filtered_snapshots: "{{ filtered_snapshots + [item] }}"
+      loop: "{{ snapshots_info.vmware_all_snapshots_info | default([]) }}"
+      when:
+        - item.creation_time is defined
+        - (item.creation_time | to_datetime).timestamp() | int < threshold_epoch
+
+    - name: Generate HTML table rows
       ansible.builtin.set_fact:
         html_table_rows: |
-          {% if filtered_snapshots is defined and filtered_snapshots | length > 0 %}
-            {% for snapshot in filtered_snapshots %}
-            <tr>
-              <td>{{ snapshot.name }} (VM: {{ snapshot.vm_name }})</td>
-              <td>{{ snapshot.creation_time | to_datetime('%Y-%m-%dT%H:%M:%S.%f%z') | strftime('%Y-%m-%d %H:%M:%S %Z') }}</td>
-              <td>N/A (Ver Nota)</td>
-            </tr>
-            {% endfor %}
+          {% if filtered_snapshots | length > 0 %}
+          {% for snapshot in filtered_snapshots %}
+          <tr>
+            <td>{{ snapshot.name }} (VM: {{ snapshot.vm_name }})</td>
+            <td>
+              {{ (snapshot.creation_time | to_datetime).strftime('%Y-%m-%d %H:%M:%S') }}
+            </td>
+            <td>N/A</td>
+          </tr>
+          {% endfor %}
           {% else %}
-            <tr>
-              <td colspan="3">Nenhum snapshot encontrado com mais de {{ days_threshold }} dias.</td>
-            </tr>
+          <tr>
+            <td colspan="3">
+              No snapshots older than {{ days_threshold }} days were found.
+            </td>
+          </tr>
           {% endif %}
-      when: snapshot_info.vmware_all_snapshots_info is defined
 
-    # 5. Constrói o corpo completo do email em HTML
-    - name: Construct the full HTML email body
+    - name: Construct HTML email body
       ansible.builtin.set_fact:
         email_body_html: |
           <html>
           <head>
-          <style>
-            table { width: 80%; border-collapse: collapse; margin-bottom: 20px; font-family: Arial, sans-serif; }
-            th, td { border: 1px solid #c0c0c0; padding: 10px; text-align: left; }
-            th { background-color: #f2f2f2; color: #333; }
-            .note { color: #800000; font-weight: bold; }
-          </style>
+            <style>
+              body {
+                font-family: Arial, sans-serif;
+              }
+
+              table {
+                width: 80%;
+                border-collapse: collapse;
+                margin-bottom: 20px;
+              }
+
+              th, td {
+                border: 1px solid #c0c0c0;
+                padding: 10px;
+                text-align: left;
+              }
+
+              th {
+                background-color: #f2f2f2;
+                color: #333333;
+              }
+
+              .note {
+                color: #800000;
+                font-weight: bold;
+              }
+            </style>
           </head>
           <body>
+
             <h2>{{ email_subject }}</h2>
-            <p>Este relatório lista todos os snapshots no Datacenter '{{ datacenter_name }}' mais antigos que {{ days_threshold }} dias. O limite de criação é **{{ readable_threshold_date }}**.</p>
+
+            <p>
+              This report lists all snapshots in datacenter
+              <strong>{{ datacenter }}</strong>
+              older than
+              <strong>{{ days_threshold }}</strong> days.
+            </p>
+
+            <p>
+              Snapshot creation threshold:
+              <strong>{{ readable_threshold_date }}</strong>
+            </p>
+
             <table>
               <tr>
                 <th>Name (VM Name)</th>
                 <th>Created At</th>
                 <th>Size</th>
               </tr>
-              {{ html_table_rows | default('<tr><td colspan="3">Erro ao gerar linhas da tabela.</td></tr>') }}
+
+              {{ html_table_rows }}
+
             </table>
-            <p class="note">Nota sobre o Tamanho (Size):</p>
-            <p>O tamanho exato do snapshot (tamanho do disco delta) não é um campo de retorno direto do módulo <code>vmware_all_snapshots_info</code>.</p>
-            <p>Relatório gerado por Ansible.</p>
+
+            <p class="note">Note about snapshot size:</p>
+
+            <p>
+              The exact snapshot size (delta disk size) is not returned by
+              the <code>vmware_all_snapshots_info</code> module.
+            </p>
+
+            <p>
+              Report generated by Ansible.
+            </p>
+
           </body>
           </html>
 
-    # 6. Envia o email via SMTP na porta 25 (sem autenticação)
-    - name: Send HTML email report via unauthenticated SMTP
+    - name: Send HTML email report via SMTP
       community.general.mail:
         host: "{{ smtp_server }}"
-        port: "{{ smtp_port }}"
+        port: "{{ smtp_port | default(25) }}"
         subject: "{{ email_subject }}"
         body: "{{ email_body_html }}"
         from: "{{ email_from }}"
         to: "{{ email_to }}"
-        # Define o tipo de conteúdo como HTML
         subtype: html
-        # Para SMTP na porta 25 sem autenticação
-        secure: no
-      delegate_to: localhost 
+        secure: never
+      delegate_to: localhost
+
+    - name: Display snapshot count
+      ansible.builtin.debug:
+        msg: >-
+          Found {{ filtered_snapshots | length }}
+          snapshots older than {{ days_threshold }} days.
