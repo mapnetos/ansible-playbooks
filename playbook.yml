@@ -3,7 +3,7 @@
   hosts: localhost
   gather_facts: false
   vars:
-    threshold_days: "{{ days_threshold | default(30) | int }}"
+    threshold_days: "{{ days_threshold | default(3) | int }}"
     # Ensure variables like datacenter, smtp_server, etc., are defined or passed via extra-vars
   collections:
     - community.vmware
