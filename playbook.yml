@@ -36,7 +36,7 @@
       loop: "{{ snapshots_info.vmware_all_snapshots_info | default([]) }}"
       when:
         - item.creation_time is defined
-        - (item.creation_time | to_datetime).timestamp() | int < threshold_epoch
+        - ( item.creation_time | to_datetime('%Y-%m-%dT%H:%M:%S.%f%z')).strftime('%s') | int < threshold_epoch
 
     - name: Generate HTML table rows
       ansible.builtin.set_fact:
