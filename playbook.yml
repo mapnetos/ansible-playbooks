@@ -24,7 +24,7 @@
         filtered_snapshots: []
 
     - name: Gather VMware snapshots
-      community.vmware.vmware_all_snapshots_info:
+      community.vmware:
         datacenter: "{{ datacenter }}"
         validate_certs: false
       register: snapshots_info
