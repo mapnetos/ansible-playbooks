@@ -15,17 +15,10 @@
         datacenter: "{{ datacenter }}"
         validate_certs: false
       register: snapshots_info
-
-
     - name: Calculate threshold timestamp
       ansible.builtin.set_fact:
         threshold_epoch: "{{ (now().timestamp() | int) - (threshold_days * 86400) }}"
-        readable_threshold_date: >-
-          {{
-            (
-              (now().timestamp() | int) - (threshold_days * 86400)
-            ) | strftime('%Y-%m-%d %H:%M:%S')
-          }}
+
 
     - name: Gather all snapshot information
       community.vmware.vmware_all_snapshots_info:
