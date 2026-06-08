@@ -7,5 +7,5 @@
     - name: Gather all snapshot information across the datacenter
       community.vmware.vmware_all_snapshots_info:
         validate_certs: no
-        datacenter: "{{ datacenter_name }}"
+        datacenter: "{{ datacenter }}"
       register: snapshot_info
