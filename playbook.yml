@@ -1,18 +1,18 @@
 ---
-- name: Report all VMware VM snapshots
+- name: Report VMware VM snapshots older than threshold
   hosts: localhost
   gather_facts: false
-
-  vars:
-    threshold_days: "{{ days_threshold | default(3) | int }}"
 
   collections:
     - community.vmware
     - community.general
 
+  vars:
+    threshold_days: "{{ days_threshold | default(3) | int }}"
+
   tasks:
 
-    - name: Calculate threshold date string
+    - name: Calculate threshold date (string compare safe)
       ansible.builtin.shell: >
         date -u -d "-{{ threshold_days }} days" "+%Y-%m-%dT%H:%M:%S"
       register: threshold_date_cmd
@@ -29,15 +29,25 @@
         validate_certs: false
       register: snapshots_info
 
-    - name: Filter snapshots older than threshold
+    - name: Extract snapshot list safely
+      ansible.builtin.set_fact:
+        snapshot_list: >-
+          {{
+            snapshots_info.vmware_all_snapshots_info
+            | default([])
+            | flatten
+          }}
+
+    - name: Filter valid snapshots older than threshold
       ansible.builtin.set_fact:
         filtered_snapshots: "{{ filtered_snapshots + [item] }}"
-      loop: "{{ snapshots_info.vmware_all_snapshots_info | default([]) }}"
+      loop: "{{ snapshot_list }}"
       when:
+        - item is mapping
         - item.creation_time is defined
         - item.creation_time[0:19] < threshold_date
 
-    - name: Build HTML rows
+    - name: Build HTML table rows
       ansible.builtin.set_fact:
         html_rows: |
           {% if filtered_snapshots | length > 0 %}
@@ -45,7 +55,7 @@
           <tr>
             <td>{{ snapshot.vm_name | default('Unknown') }}</td>
             <td>{{ snapshot.name | default('Unknown') }}</td>
-            <td>{{ snapshot.creation_time }}</td>
+            <td>{{ snapshot.creation_time | default('Unknown') }}</td>
           </tr>
           {% endfor %}
           {% else %}
@@ -56,7 +66,7 @@
           </tr>
           {% endif %}
 
-    - name: Build email body
+    - name: Build email body HTML
       ansible.builtin.set_fact:
         email_body_html: |
           <html>
@@ -82,7 +92,7 @@
             </p>
 
             <p>
-              Snapshot threshold:
+              Snapshots older than:
               <strong>{{ threshold_days }} days</strong>
             </p>
 
@@ -123,4 +133,4 @@
       ansible.builtin.debug:
         msg: >
           Found {{ filtered_snapshots | length }}
-          snapshots older than {{ threshold_days }} days.
+          snapshots older than {{ threshold_days }} days
