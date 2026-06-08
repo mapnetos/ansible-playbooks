@@ -29,6 +29,10 @@
         validate_certs: false
       register: snapshots_info
 
+    - name: Debug snapshot list
+      ansible.builtin.debug:
+        var: snapshots_info
+
     - name: Build snapshot list safely
       ansible.builtin.set_fact:
         snapshot_list: >-
