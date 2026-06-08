@@ -15,3 +15,119 @@
         datacenter: "{{ datacenter }}"
         validate_certs: false
       register: snapshots_info
+
+    - name: Calculate threshold date
+      ansible.builtin.shell: >
+        date -u -d "-{{ threshold_days }} days" "+%Y-%m-%dT%H:%M:%S"
+      register: threshold_date_cmd
+      changed_when: false
+
+    - name: Save threshold date
+      ansible.builtin.set_fact:
+        threshold_date: "{{ threshold_date_cmd.stdout }}"
+
+    - name: Gather VMware snapshots
+      community.vmware.vmware_all_snapshots_info:
+        datacenter: "{{ datacenter }}"
+        validate_certs: false
+      register: snapshots_info
+
+    - name: Initialize filtered snapshot list
+      ansible.builtin.set_fact:
+        filtered_snapshots: []
+
+    - name: Select snapshots older than threshold
+      ansible.builtin.set_fact:
+        filtered_snapshots: "{{ filtered_snapshots + [item] }}"
+      loop: "{{ snapshots_info.vmware_all_snapshots_info | default([]) }}"
+      when:
+        - item.creation_time is defined
+        - item.creation_time[0:19] < threshold_date
+
+    - name: Build HTML rows
+      ansible.builtin.set_fact:
+        html_rows: |
+          {% if filtered_snapshots | length > 0 %}
+          {% for snapshot in filtered_snapshots %}
+          <tr>
+            <td>{{ snapshot.vm_name | default('Unknown') }}</td>
+            <td>{{ snapshot.name | default('Unknown') }}</td>
+            <td>{{ snapshot.creation_time }}</td>
+          </tr>
+          {% endfor %}
+          {% else %}
+          <tr>
+            <td colspan="3">
+              No snapshots older than {{ threshold_days }} days found.
+            </td>
+          </tr>
+          {% endif %}
+
+    - name: Build email body
+      ansible.builtin.set_fact:
+        email_body_html: |
+          <html>
+          <head>
+            <style>
+              body { font-family: Arial, sans-serif; }
+              table { border-collapse: collapse; width: 100%; }
+              th, td {
+                border: 1px solid #cccccc;
+                padding: 8px;
+                text-align: left;
+              }
+              th { background-color: #f2f2f2; }
+            </style>
+          </head>
+          <body>
+
+            <h2>{{ email_subject }}</h2>
+
+            <p>
+              Datacenter:
+              <strong>{{ datacenter }}</strong>
+            </p>
+
+            <p>
+              Snapshot threshold:
+              <strong>{{ threshold_days }} days</strong>
+            </p>
+
+            <p>
+              Threshold date:
+              <strong>{{ threshold_date }}</strong>
+            </p>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>VM Name</th>
+                  <th>Snapshot Name</th>
+                  <th>Creation Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{ html_rows }}
+              </tbody>
+            </table>
+
+          </body>
+          </html>
+
+    - name: Send email report
+      community.general.mail:
+        host: "{{ smtp_server }}"
+        port: "{{ smtp_port | default(25) }}"
+        from: "{{ email_from }}"
+        to: "{{ email_to }}"
+        subject: "{{ email_subject }}"
+        body: "{{ email_body_html }}"
+        subtype: html
+        secure: never
+      delegate_to: localhost
+
+    - name: Summary
+      ansible.builtin.debug:
+        msg: >-
+          Found {{ filtered_snapshots | length }}
+          snapshots older than {{ threshold_days }} days.
