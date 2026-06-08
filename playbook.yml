@@ -33,7 +33,7 @@
     - name: Convert dictionary to list and loop
       ansible.builtin.debug:
         msg: "Key is {{ item.key }} and value is {{ item.value }}"
-      loop: "{{ items | dict2items }}"
+      loop: "{{ item | dict2items }}"
 
     - name: Select snapshots older than threshold
       ansible.builtin.set_fact:
