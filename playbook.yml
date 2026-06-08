@@ -30,9 +30,14 @@
       ansible.builtin.set_fact:
         filtered_snapshots: []
 
+    - name: Convert dictionary to list and loop
+      ansible.builtin.debug:
+        msg: "Key is {{ item.key }} and value is {{ item.value }}"
+      loop: "{{ items | dict2items }}"
+
     - name: Select snapshots older than threshold
       ansible.builtin.set_fact:
-        filtered_snapshots: "{{ filtered_snapshots + [{{ item | items2list }}] }}"
+        filtered_snapshots: "{{ filtered_snapshots + [item] }}"
       loop: "{{ snapshots_info | default([]) }}"
       when:
         - item.creation_time is defined
