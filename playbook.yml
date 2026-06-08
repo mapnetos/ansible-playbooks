@@ -10,12 +10,6 @@
     - community.general
 
   tasks:
-    - name: Gather all snapshot information across the datacenter
-      community.vmware.vmware_all_snapshots_info: # Changed to more specific module if applicable, or kept as is
-        datacenter: "{{ datacenter }}"
-        validate_certs: false
-      register: snapshots_info
-
     - name: Calculate threshold date
       ansible.builtin.shell: >
         date -u -d "-{{ threshold_days }} days" "+%Y-%m-%dT%H:%M:%S"
@@ -39,7 +33,7 @@
     - name: Select snapshots older than threshold
       ansible.builtin.set_fact:
         filtered_snapshots: "{{ filtered_snapshots + [item] }}"
-      loop: "{{ snapshots_info.vmware_all_snapshots_info | default([]) }}"
+      loop: "{{ snapshots_info | default([]) }}"
       when:
         - item.creation_time is defined
         - item.creation_time[0:19] < threshold_date
