@@ -12,7 +12,7 @@
 
   tasks:
 
-    - name: Calculate threshold date (string compare safe)
+    - name: Calculate threshold date (string safe compare)
       ansible.builtin.shell: >
         date -u -d "-{{ threshold_days }} days" "+%Y-%m-%dT%H:%M:%S"
       register: threshold_date_cmd
@@ -29,13 +29,12 @@
         validate_certs: false
       register: snapshots_info
 
-    - name: Extract snapshot list safely
+    - name: Build snapshot list safely
       ansible.builtin.set_fact:
         snapshot_list: >-
           {{
-            snapshots_info
+            snapshots_info.vmware_all_snapshots_info
             | default([])
-            | flatten
           }}
 
     - name: Filter valid snapshots older than threshold
