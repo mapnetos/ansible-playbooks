@@ -9,16 +9,17 @@
 
   tasks:
 
-    - name: Set threshold date
-      ansible.builtin.set_fact:
-        threshold_epoch: "{{ (now().timestamp() | int) - ((days_threshold | int) * 86400) }}"
-        readable_threshold_date: >-
-          {{
-            (
-              (now().timestamp() | int)
-              - ((days_threshold | int) * 86400)
-            ) | strftime('%Y-%m-%d %H:%M:%S')
-          }}
+- name: Set threshold date
+  ansible.builtin.set_fact:
+    threshold_days: "{{ days_threshold | default(30) | int }}"
+    threshold_epoch: "{{ (now().timestamp() | int) - ((days_threshold | default(30) | int) * 86400) }}"
+    readable_threshold_date: >-
+      {{
+        (
+          (now().timestamp() | int)
+          - ((days_threshold | default(30) | int) * 86400)
+        ) | strftime('%Y-%m-%d %H:%M:%S')
+      }}
 
     - name: Gather all snapshot information across the datacenter
       community.vmware.vmware_all_snapshots_info:
