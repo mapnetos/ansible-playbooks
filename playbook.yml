@@ -2,8 +2,8 @@
 - name: Report all VMware VM snapshots
   hosts: localhost
   gather_facts: false
-vars:
-  threshold_days: "{{ days_threshold | default(30) | int }}"
+  vars:
+    threshold_days: "{{ days_threshold | default(30) | int }}"
   collections:
     - community.vmware
     - community.general
