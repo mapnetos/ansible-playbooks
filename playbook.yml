@@ -28,17 +28,10 @@
         datacenter: "{{ datacenter }}"
         validate_certs: false
       register: snapshots_info
-
-    - name: Debug snapshot list
-      ansible.builtin.debug:
-        var: snapshots_info
-
+    
     - name: Build snapshot list safely
       ansible.builtin.set_fact:
-        snapshot_list: >-
-          {{
-            snapshots_info
-            }}
+        snapshot_list: "{{ snapshots_info.vmware_all_snapshots_info | default([]) }}"
 
     - name: Filter valid snapshots older than threshold
       ansible.builtin.set_fact:
