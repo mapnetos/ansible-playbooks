@@ -11,7 +11,7 @@
 
   tasks:
     - name: Gather all snapshot information across the datacenter
-      community.vmware.vmware_vm_snapshots_info: # Changed to more specific module if applicable, or kept as is
+      community.vmware.vmware_all_snapshots_info: # Changed to more specific module if applicable, or kept as is
         datacenter: "{{ datacenter }}"
         validate_certs: false
       register: snapshots_info
