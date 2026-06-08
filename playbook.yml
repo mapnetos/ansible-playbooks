@@ -38,8 +38,7 @@
         snapshot_list: >-
           {{
             snapshots_info
-            | default([])
-          }}
+            }}
 
     - name: Filter valid snapshots older than threshold
       ansible.builtin.set_fact:
