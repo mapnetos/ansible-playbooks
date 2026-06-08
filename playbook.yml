@@ -2,15 +2,17 @@
 - name: Report all VMware VM snapshots
   hosts: localhost
   gather_facts: false
+
   vars:
     threshold_days: "{{ days_threshold | default(3) | int }}"
-    # Ensure variables like datacenter, smtp_server, etc., are defined or passed via extra-vars
+
   collections:
     - community.vmware
     - community.general
 
   tasks:
-    - name: Calculate threshold date
+
+    - name: Calculate threshold date string
       ansible.builtin.shell: >
         date -u -d "-{{ threshold_days }} days" "+%Y-%m-%dT%H:%M:%S"
       register: threshold_date_cmd
@@ -19,6 +21,7 @@
     - name: Save threshold date
       ansible.builtin.set_fact:
         threshold_date: "{{ threshold_date_cmd.stdout }}"
+        filtered_snapshots: []
 
     - name: Gather VMware snapshots
       community.vmware.vmware_all_snapshots_info:
@@ -26,11 +29,19 @@
         validate_certs: false
       register: snapshots_info
 
+    - name: Filter snapshots older than threshold
+      ansible.builtin.set_fact:
+        filtered_snapshots: "{{ filtered_snapshots + [item] }}"
+      loop: "{{ snapshots_info.vmware_all_snapshots_info | default([]) }}"
+      when:
+        - item.creation_time is defined
+        - item.creation_time[0:19] < threshold_date
+
     - name: Build HTML rows
       ansible.builtin.set_fact:
         html_rows: |
-          {% if snapshots_info | length > 0 %}
-          {% for snapshot in snapshots_info %}
+          {% if filtered_snapshots | length > 0 %}
+          {% for snapshot in filtered_snapshots %}
           <tr>
             <td>{{ snapshot.vm_name | default('Unknown') }}</td>
             <td>{{ snapshot.name | default('Unknown') }}</td>
@@ -110,6 +121,6 @@
 
     - name: Summary
       ansible.builtin.debug:
-        msg: >-
+        msg: >
           Found {{ filtered_snapshots | length }}
           snapshots older than {{ threshold_days }} days.
