@@ -29,7 +29,7 @@
     - name: Build HTML rows
       ansible.builtin.set_fact:
         html_rows: |
-          {% if filtered_snapshots | length > 0 %}
+          {% if snapshots_info | length > 0 %}
           {% for snapshot in snapshots_info %}
           <tr>
             <td>{{ snapshot.vm_name | default('Unknown') }}</td>
