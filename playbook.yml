@@ -26,15 +26,11 @@
         validate_certs: false
       register: snapshots_info
 
-    - name: Initialize filtered snapshot list
-      ansible.builtin.set_fact:
-        filtered_snapshots: []
-
     - name: Build HTML rows
       ansible.builtin.set_fact:
         html_rows: |
           {% if filtered_snapshots | length > 0 %}
-          {% for snapshot in filtered_snapshots %}
+          {% for snapshot in snapshots_info %}
           <tr>
             <td>{{ snapshot.vm_name | default('Unknown') }}</td>
             <td>{{ snapshot.name | default('Unknown') }}</td>
