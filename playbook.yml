@@ -37,7 +37,7 @@
       ansible.builtin.set_fact:
         snapshot_list: >-
           {{
-            snapshots_info.vmware_all_snapshots_info
+            snapshots_info
             | default([])
           }}
 
