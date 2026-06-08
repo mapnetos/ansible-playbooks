@@ -4,11 +4,6 @@
     - ansible.windows
   hosts: all
   tasks:
-    - name: Set threshold date (in epoch seconds for logic and readable string for email)
-      ansible.builtin.set_fact:
-        threshold_epoch: "{{ now().strftime('%s') | int - (days_threshold | int * 86400) }}"
-        readable_threshold_date: "{{ now() | date('-' + days_threshold | string + ' days', '%Y-%m-%d %H:%M:%S %Z') }}"
- 
     - name: Gather all snapshot information across the datacenter
       community.vmware.vmware_all_snapshots_info:
         validate_certs: no
