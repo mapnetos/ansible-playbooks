@@ -1,0 +1,45 @@
+---
+- name: Provision 10 VMs in VMware
+  hosts: localhost
+  gather_facts: no
+  connection: local
+
+  vars_files:
+    - vms_data.json
+
+  vars:
+    vcenter_hostname: "vcenter.yourdomain.local"
+    vcenter_username: "administrator@vsphere.local"
+    vcenter_password: "YourSecurePassword"
+    datacenter_name: "Your-Datacenter"
+    datastore_name: "Your-Datastore"
+    esxi_host: "esxi01.yourdomain.local"
+    vm_template: "Template-Name"
+    vm_folder: "Provisioned_VMs"
+
+  tasks:
+    - name: Clone and deploy VMs from template
+      community.vmware.vmware_guest:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_username }}"
+        password: "{{ vcenter_password }}"
+        validate_certs: no
+        datacenter: "{{ datacenter_name }}"
+        folder: "/{{ datacenter_name }}/vm/{{ vm_folder }}"
+        name: "{{ item.name }}"
+        template: "{{ vm_template }}"
+        state: powered_on
+        guest_id: rhel8_64Guest  # Change to match your OS
+        hardware:
+          memory_mb: 4096
+          num_cpus: 2
+          scsi: lsilogic
+        networks:
+          - name: "VM Network"
+            ip: "{{ item.ip }}"
+            netmask: "{{ item.subnet_mask }}"
+            gateway: "{{ item.gateway }}"
+            device_type: vmxnet3
+            type: static
+        esxi_host: "{{ esxi_host }}"
+      loop: "{{ vm_list }}"
