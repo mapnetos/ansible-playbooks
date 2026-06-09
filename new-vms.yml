@@ -1,31 +1,17 @@
 ---
-- name: Provision 10 VMs in VMware
-  hosts: localhost
-  gather_facts: no
-  connection: local
-
+- name: Deploy Machine
+  collections:
+    - community.vmware
+    - ansible.windows
   vars_files:
     - vms_data.json
-
-  vars:
-    vcenter_hostname: "vcenter.yourdomain.local"
-    vcenter_username: "administrator@vsphere.local"
-    vcenter_password: "YourSecurePassword"
-    datacenter_name: "Your-Datacenter"
-    datastore_name: "Your-Datastore"
-    esxi_host: "esxi01.yourdomain.local"
-    vm_template: "Template-Name"
-    vm_folder: "Provisioned_VMs"
-
+  hosts: all
   tasks:
-    - name: Clone and deploy VMs from template
+    - name: Deploy Windows VM from template
       community.vmware.vmware_guest:
-        hostname: "{{ vcenter_hostname }}"
-        username: "{{ vcenter_username }}"
-        password: "{{ vcenter_password }}"
-        validate_certs: no
-        datacenter: "{{ datacenter_name }}"
-        folder: "/{{ datacenter_name }}/vm/{{ vm_folder }}"
+        validate_certs: "{{ validate_certs }}"
+        datacenter: "{{ datacentere }}"
+        folder: "/{{ datacenter }}/vm/{{ vm_folder }}"
         name: "{{ item.name }}"
         template: "{{ vm_template }}"
         state: powered_on
