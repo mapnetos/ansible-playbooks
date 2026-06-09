@@ -1,0 +1,57 @@
+- name: Deploy Machine
+  collections:
+    - community.vmware
+    - ansible.windows
+  hosts: all
+  tasks:
+    - name: Deploy Windows VM from template
+      community.vmware.vmware_guest:
+        validate_certs: "{{ validate_certs }}"
+        name: "{{ vm_name }}"
+        vm_notes: "{{ notes }}"
+        template: "{{ template_name }}"
+        datacenter: "{{ datacenter_name }}"
+        folder: "{{ vm_folder }}"
+        cluster: "{{ cluster_name }}"
+        datastore: "{{ datastore_name }}"
+        hardware:
+          memory_mb: "{{ var_memory_mb }}"
+          num_cpus: "{{ var_num_cpus }}"
+          scsi: paravirtual
+        networks:
+          - name: "{{ network_name }}"
+            network_name: "{{ network_name }}"
+            label: "{{ interface_name }}"
+            device_type: vmxnet3
+            start_connected: true
+            connected: true
+            type: static
+            ip: "{{ ip_address }}"
+            netmask: "{{ var_subnet_mask }}"
+            gateway: "{{ var_gateway }}"
+            dns_servers:
+              - "{{ dns_server1 }}"
+              - "{{ dns_server2 }}"
+            state: present
+        customization:
+          autologon: false
+          autologoncount: 0
+          hostname: "{{ hostname }}"
+          password: "{{ winrm_password }}"
+        wait_for_customization: true
+        state: poweredon
+        wait_for_ip_address: true
+      delegate_to: localhost
+      register: vm_deploy
+
+    - name: Debug VM deployment result
+      ansible.builtin.debug:
+        var: vm_deploy
+      when: vm_deploy.failed
+
+    - name: Add VM to Ansible inventory
+      ansible.builtin.add_host:
+        name: "{{ vm_name }}"
+        ansible_host: "{{ ip_address }}"
+        groups: Windows_servers
+      when: vm_deploy is success
