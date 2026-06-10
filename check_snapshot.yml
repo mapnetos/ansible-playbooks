@@ -30,7 +30,7 @@
         port: "{{ smtp_port }}"
         from: "{{ email_from }}"
         to: "{{ email_to }}"
-        ssubject: "VMware Snapshots Report - {{ report_date }}"
+        subject: "VMware Snapshots Report - {{ report_date }}"
         subtype: html
         body: |
           <html>
