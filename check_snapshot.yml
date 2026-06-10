@@ -17,7 +17,9 @@
         validate_certs: false
         datacenter: "{{ vmware_datacenter }}"
       delegate_to: localhost
-      register: result    - name: Show result structure
+      register: result    
+    
+    - name: Show result structure
       debug:
         var: result
       delegate_to: localhost
