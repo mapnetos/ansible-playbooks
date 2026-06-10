@@ -14,6 +14,11 @@
     report_file: "/tmp/snapshots.html"
 
   tasks:
+    - name: Get current date using shell
+      command: date "+%Y-%m-%d"
+      register: date_cmd
+      changed_when: false
+      
     - name: Gather all VMware snapshots
       community.vmware.vmware_all_snapshots_info:
         datacenter: "{{ datacenter }}"
@@ -30,7 +35,7 @@
         port: "{{ smtp_port }}"
         from: "{{ email_from }}"
         to: "{{ email_to }}"
-        subject: "VMware Snapshots Report - {{ current_date }}"
+        subject: "VMware Snapshots Report - {{ date_cmd.stdout }}"
         subtype: html
         body: |
           <html>
