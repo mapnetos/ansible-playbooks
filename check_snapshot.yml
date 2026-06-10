@@ -1,0 +1,18 @@
+- name: Checking snapshots
+  collections:
+    - community.vmware
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Deploy Linux VM from template
+      community.vmware.vmware_guest:
+        validate_certs: "{{ validate_certs }}"
+      
+    - name: Display Windows license status
+      debug:
+        msg: >
+          {{ ansible_os_license_status }}
+
+    - name: Print OS details
+      debug:
+        msg: "OS: {{ ansible_distribution }}"
