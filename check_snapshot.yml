@@ -5,7 +5,7 @@
   hosts: localhost
   gather_facts: true
   vars:
-    vmware_datacenter: {{ datacenter }}
+    vmware_datacenter: "{{ datacenter }}"
     
     # Email settings (no authentication)
     smtp_host: "your-smtp-server"
