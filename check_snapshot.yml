@@ -14,11 +14,6 @@
     report_file: "/tmp/snapshots.html"
 
   tasks:
-    - name: Get current date
-      community.general.dateformat:
-        format: "%Y-%m-%d"
-      register: date_result
-      
     - name: Gather all VMware snapshots
       community.vmware.vmware_all_snapshots_info:
         datacenter: "{{ datacenter }}"
