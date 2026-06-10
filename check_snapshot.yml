@@ -40,7 +40,7 @@
         body: |
           <html>
           <body>
-          <h2>VMware Snapshots Report</h2>
+          <h2>VMware Snapshots Report - {{ env }}</h2>
           <p>Total snapshots: {{ snapshots_result.vmware_all_snapshots_info | length }}</p>
           <table border="1" cellpadding="5">
           <tr><th>VM Name</th><th>Created Date</th><th>Description</th></tr>
