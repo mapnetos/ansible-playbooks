@@ -20,9 +20,6 @@
   tasks:
     - name: Gather all VMware snapshots information
       community.vmware.vmware_all_snapshots_info:
-        hostname: "{{ vmware_hostname }}"
-        username: "{{ vmware_username }}"
-        password: "{{ vmware_password }}"
         validate_certs: false
         datacenter: "{{ vmware_datacenter }}"
       delegate_to: localhost
