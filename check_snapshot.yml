@@ -45,7 +45,7 @@
             <td>{{ snap.description }}</td>
             <td>{{ snap.description }}</td>
             <td>{{ snap.creation_time }}</td>
-            <td>{{ snap.size_gb }}</td>
+            <td>{{ snap.description }}</td>
           </tr>
           {% endfor %}
           </table>
