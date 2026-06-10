@@ -43,7 +43,7 @@
           <h2>VMware Snapshots Report</h2>
           <p>Total snapshots: {{ snapshots_result.vmware_all_snapshots_info | length }}</p>
           <table border="1" cellpadding="5">
-          <tr><th>VM Name</th><th>Created date</th><th>Description</th></tr>
+          <tr><th>VM Name</th><th>Created Date</th><th>Description</th></tr>
           {% for snap in snapshots_result.vmware_all_snapshots_info %}
           <tr>
             <td>{{ snap.vm_name }}</td>
