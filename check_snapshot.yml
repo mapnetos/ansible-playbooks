@@ -1,9 +1,7 @@
 ---
 - name: Generate VMware Snapshots HTML Report and Send Email
-  collections:
-    - community.vmware
   hosts: localhost
-  gather_facts: true
+  gather_facts: false
   vars:
     vmware_datacenter: "{{ datacenter }}"
     smtp_host: "your-smtp-server"
@@ -14,65 +12,70 @@
     report_path: "/tmp/vmware_snapshots_report.html"
 
   tasks:
-    - name: Gather VMware snapshots
+    - name: Gather VMware snapshots information
       community.vmware.vmware_all_snapshots_info:
         validate_certs: false
         datacenter: "{{ vmware_datacenter }}"
+      delegate_to: localhost
       register: result
 
-      delegate_to: localhost
-      register: snapshots_result
-
-    - name: Debug result to see actual structure
+    - name: Debug - show full result structure
       debug:
-        msg: "{{ snapshots_result }}"
+        var: result
       delegate_to: localhost
 
-    - name: Extract all snapshots from datacenter structure
-      set_fact:
-        all_vm_snapshots: >-
-          {{
-            snapshots_result
-            | json_query('snapshots_info.*.snapshots[*]')
-            | list
-            | sum(start=[])
-            | sum(start=[])
-          }}
+    - name: Debug - show keys of result
+      debug:
+        var: result.keys()
       delegate_to: localhost
-      no_log: false
 
-    - name: Alternative extraction - flatten dict structure
+    - name: Extract snapshots using json_query
       set_fact:
-        flat_snapshots: >-
+        raw_snapshots: "{{ result | json_query('vmware_all_snapshots_info[]') }}"
+      delegate_to: localhost
+      when: result.vmware_all_snapshots_info is defined
+
+    - name: Alternative - extract from nested structure
+      set_fact:
+        raw_snapshots: >-
           {{
-            snapshots_result.snapshots_info
+            result
             | dict
             | items
+            | selectattr('0', 'ne', 'failed')
+            | selectattr('0', 'ne', 'skipped')
             | map(attribute='1')
-            | list
-            | map(attribute='snapshots')
             | list
             | sum(start=[])
           }}
       delegate_to: localhost
-      when: snapshots_result.snapshots_info is defined
+      when: result.vmware_all_snapshots_info is not defined
+
+    - name: Debug - show raw snapshots
+      debug:
+        var: raw_snapshots
+      delegate_to: localhost
 
     - name: Create report snapshots list
       set_fact:
         report_snapshots: >-
           {{
-            flat_snapshots
+            raw_snapshots
             | map(
                 lambda s: {
-                  'vm_name': s.vm_name,
-                  'created_at': s.creation_time,
-                  'size': s.size_gb
+                  'vm_name': s.vm_name | default('unknown'),
+                  'created_at': s.creation_time | default('unknown'),
+                  'size': s.size_gb | default(0)
                 }
               )
             | list
           }}
       delegate_to: localhost
-      when: flat_snapshots is defined
+
+    - name: Debug - show final report data
+      debug:
+        var: report_snapshots
+      delegate_to: localhost
 
     - name: Generate HTML report
       template:
@@ -89,6 +92,18 @@
         to: "{{ email_to }}"
         subject: "{{ email_subject }}"
         subtype: html
-        body: "<html><body><h2>VMware Snapshots Report</h2><table border='1'><tr><th>VM Name</th><th>Created At</th><th>Size (GB)</th></tr>{% for s in report_snapshots %}<tr><td>{{ s.vm_name }}</td><td>{{ s.created_at }}</td><td>{{ s.size }}</td></tr>{% endfor %}</table></body></html>"
+        body: |
+          <html>
+          <body>
+          <h1>VMware Snapshots Report</h1>
+          <table border="1" cellpadding="5">
+          <tr><th>VM Name</th><th>Created At</th><th>Size (GB)</th></tr>
+          {% for snapshot in report_snapshots %}
+          <tr><td>{{ snapshot.vm_name }}</td><td>{{ snapshot.created_at }}</td><td>{{ snapshot.size }}</td></tr>
+          {% endfor %}
+          </table>
+          <p>Total: {{ report_snapshots | length }} snapshots</p>
+          </body>
+          </html>
       delegate_to: localhost
       run_once: true
