@@ -21,7 +21,6 @@
       debug:
         var: result
       delegate_to: localhost
-
     - name: Get snapshots list
       set_fact:
         snapshots_list: "{{ result.vmware_all_snapshots_info }}"
