@@ -6,62 +6,50 @@
   gather_facts: true
   vars:
     vmware_datacenter: "{{ datacenter }}"
-    
-    # Email settings (no authentication)
     smtp_host: "your-smtp-server"
     smtp_port: 25
     email_from: "ansible@yourdomain.com"
-    email_to: ["recipient1@domain.com", "recipient2@domain.com"]
+    email_to: ["recipient@domain.com"]
     email_subject: "VMware Snapshots Report"
-    
-    # Report settings
     report_path: "/tmp/vmware_snapshots_report.html"
 
   tasks:
-    - name: Gather all VMware snapshots information
+    - name: Gather VMware snapshots
       community.vmware.vmware_all_snapshots_info:
         validate_certs: false
         datacenter: "{{ vmware_datacenter }}"
-      delegate_to: localhost
-      register: snapshots_result
+      register: result
 
-    - name: Extract snapshot data into list
+    - name: Build snapshots list using loop
       set_fact:
-        snapshots_list: >-
-          {{
-            snapshots_result.snapshots_info.values()
-            | list
-            | sum(start=[])
-            | map(attribute='snapshots')
-            | list
-            | sum(start=[])
-          }}
-      delegate_to: localhost
+        report_snapshots: []
+      loop: "{{ result.snapshots_info.keys() | list }}"
+      loop_control:
+        loop_var: dc_name
+      register: loop_result
 
-    - name: Create filtered snapshots list with required fields
+    - name: Extract snapshots with proper flattening
       set_fact:
         report_snapshots: >-
           {{
-            snapshots_list
-            | map(
-                lambda s: {
-                  'vm_name': s.vm_name,
-                  'created_at': s.creation_time,
-                  'size': s.size_gb
-                }
-              )
+            []
+            + result.snapshots_info
+            | dict
+            | items
+            | map(attribute='1.snapshots')
+            | list
+            | sum(start=[])
+            | map(lambda s: {'vm_name': s.vm_name, 'created_at': s.creation_time, 'size': s.size_gb})
             | list
           }}
-      delegate_to: localhost
 
-    - name: Generate HTML report using Jinja2 template
+    - name: Generate HTML report
       template:
         src: snapshots_report.j2
         dest: "{{ report_path }}"
-      delegate_to: localhost
       run_once: true
 
-    - name: Send HTML report via email
+    - name: Send email
       community.general.mail:
         host: "{{ smtp_host }}"
         port: "{{ smtp_port }}"
@@ -69,13 +57,5 @@
         to: "{{ email_to }}"
         subject: "{{ email_subject }}"
         subtype: html
-        body: |
-          <html>
-          <body>
-          <h2>VMware Snapshots Report</h2>
-          <p>Please find the snapshots report below:</p>
-          {% include report_path %}
-          </body>
-          </html>
-      delegate_to: localhost
+        body: "<html><body><h1>VMware Snapshots</h1><table border='1'><tr><th>VM Name</th><th>Created</th><th>Size GB</th></tr>{% for s in report_snapshots %}<tr><td>{{ s.vm_name }}</td><td>{{ s.created_at }}</td><td>{{ s.size }}</td></tr>{% endfor %}</table></body></html>"
       run_once: true
