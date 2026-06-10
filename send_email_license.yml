@@ -1,0 +1,86 @@
+- name: get system uptime
+  hosts: all
+  gather_facts: yes
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+ 
+  tasks:
+    - name: Run hostname command
+      ansible.windows.win_shell: hostname
+      register: hostname_output
+
+    - name: Get product id and product key
+      community.windows.win_product_facts:
+    
+    - name: Print OS details
+      debug:
+        msg: >
+          <td class="">{{ hostname_output.stdout | trim }}</td><td class="">{{ ansible_distribution | trim }}</td><td class="warning">{{ ansible_os_license_status | trim | join }}</td> <td>      <form action="http://10.83.102.194:31906/#/templates/job_template/48" method="POST" style="display:inline;">        <input type="text" name="limit" value={{ hostname_output.stdout | trim }}>        <input type="hidden" name="extra_vars" value='{"ansible_port":5985,"ansible_connection":"winrm"}'>    <input type="text" name="serial" value='{"serial":XXXXX-XXXXXX-XXXXXXX-XXXXXX-XXXXXX"}'>    <button type="submit" style="border:none;background:none;cursor:pointer;padding:5px;">          ▶️ Executar Template 48        </button>      </form>    </td>
+      when: ansible_os_license_status != "Licensed"
+      register: debug_output
+
+#    - name: Display Uptime in Days
+#      ansible.builtin.debug:
+#        msg: "{{ ansible_facts.hostname }} sem boot a {{ uptime_days }} dias"
+#      register: debug_output
+
+    - name: Save debug message to a file
+      delegate_to: localhost
+      ignore_errors: true
+      lineinfile:
+        path: "/tmp/uptime.txt"
+        line: "{{ debug_output.msg }}"
+        create: true
+
+- name: Enviar email
+  gather_facts: false
+  hosts: localhost
+
+  tasks:
+    - name: Lendo o conteudo do arquivo txt
+      set_fact:
+        uptime_servidores: "{{ lookup('file', '/tmp/uptime.txt').splitlines() }}"
+      delegate_to: localhost
+
+    - name: Send e-mail
+      ansible.builtin.mail:
+        host: 10.5.0.226
+          #port: 587
+        port: 25
+        #secure: starttls
+          #username: seuemail@gmail.com
+          #password: "{{ email_password }}"  # Use uma variável segura ou vault
+        subtype: html  # Define o tipo de conteúdo como HTML
+        subject: Relatório Servidores Windows Ativados {{ ambiente }}
+        body: |
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <style>
+              body { font-family: Arial, sans-serif; }
+              h2 { color: #333; } 
+              table { border-collapse: collapse; width: 100%; max-width: 600px; margin: 20px 0; }
+              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+              th { background-color: #f2f2f2; }
+              tr:nth-child(even) { background-color: #f9f9f9; }
+              .warning { color: #d32f2f; }
+            </style>
+          </head>
+          <body>
+            <table>
+              <tr>
+                <th>servidor</th>
+                <th>versão</th>
+                <th>licença</th>
+                <th>Resolve Aqui</th>
+              </tr>
+              {% for line in uptime_servidores %}
+              <tr>
+                {{ line }}
+              </tr>
+              {% endfor %}
+            </table>
+          </body>
+          </html>
+        from: "{{ outlook_username }}"
+        to: "{{ email_list }}"
