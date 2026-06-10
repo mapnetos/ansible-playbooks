@@ -5,11 +5,7 @@
   hosts: localhost
   gather_facts: true
   vars:
-    # VMware credentials
-    vmware_hostname: "your-vcenter-host"
-    vmware_username: "your-username"
-    vmware_password: "your-password"
-    vmware_datacenter: "YourDatacenter"
+    vmware_datacenter: {{ datacenter }}
     
     # Email settings (no authentication)
     smtp_host: "your-smtp-server"
