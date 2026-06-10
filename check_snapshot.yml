@@ -40,7 +40,7 @@
       set_fact:
         report_snapshots: "{{ report_snapshots + [{'vm_name': item.vm_name, 'created_at': item.creation_time, 'size': item.size_gb}] }}"
       delegate_to: localhost
-      loop: "{{ snapshots_list }}"
+      loop: snapshots_list
       when: snapshots_list is defined
 
     - name: Show final report data
