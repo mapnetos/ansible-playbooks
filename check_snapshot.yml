@@ -14,6 +14,11 @@
     report_file: "/tmp/snapshots.html"
 
   tasks:
+    - name: Get current date
+      community.general.dateformat:
+        format: "%Y-%m-%d"
+      register: date_result
+      
     - name: Gather all VMware snapshots
       community.vmware.vmware_all_snapshots_info:
         datacenter: "{{ datacenter }}"
@@ -30,7 +35,7 @@
         port: "{{ smtp_port }}"
         from: "{{ email_from }}"
         to: "{{ email_to }}"
-        subject: "VMware Snapshots Report - {{ ansible_date_time.date }}"
+        subject: "VMware Snapshots Report - {{ date_result.date }}"
         subtype: html
         body: |
           <html>
