@@ -42,8 +42,6 @@
           {% for snap in snapshots_result.vmware_all_snapshots_info %}
           <tr>
             <td>{{ snap.vm_name }}</td>
-            <td>{{ snap.description }}</td>
-            <td>{{ snap.description }}</td>
             <td>{{ snap.creation_time }}</td>
             <td>{{ snap.description }}</td>
           </tr>
