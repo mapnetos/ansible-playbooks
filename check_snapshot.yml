@@ -1,66 +1,52 @@
 ---
-- name: Generate VMware Snapshots HTML Report and Send Email
+- name: Get VMware Snapshots and Send Email
   hosts: localhost
   gather_facts: false
-  vars:
-    vmware_datacenter: "{{ datacenter }}"
-    smtp_host: "your-smtp-server"
+  vars:  
+    # Email settings (no authentication)
+    smtp_server: "your-smtp-server"
     smtp_port: 25
     email_from: "ansible@yourdomain.com"
-    email_to: ["recipient@domain.com"]
+    email_to: "recipient@domain.com"
     email_subject: "VMware Snapshots Report"
-    report_path: "/tmp/vmware_snapshots_report.html"
+    
+    # Report file
+    report_file: "/tmp/snapshots.html"
 
   tasks:
-    - name: Gather VMware snapshots information
+    - name: Gather all VMware snapshots
       community.vmware.vmware_all_snapshots_info:
         validate_certs: false
-        datacenter: "{{ vmware_datacenter }}"
-      delegate_to: localhost
-      register: result    
-    
-    - name: Show result structure
+      register: snapshots_result
+
+    - name: Show snapshots found
       debug:
-        var: result
-      delegate_to: localhost
-      
-    - name: Get snapshots list
-      set_fact:
-        snapshots_list: "{{ result.vmware_all_snapshots_info }}"
-      delegate_to: localhost
-      when: result.vmware_all_snapshots_info is defined
+        msg: "Found {{ snapshots_result.vmware_all_snapshots_info | length }} snapshots"
 
-    - name: Show snapshots
-      debug:
-        var: snapshots_list
-      delegate_to: localhost
-      when: snapshots_list is defined
-
-    - name: Process each snapshot
-      set_fact:
-        report_snapshots: "{{ report_snapshots + [{'vm_name': item.vm_name, 'created_at': item.creation_time, 'size': item.size_gb}] }}"
-      delegate_to: localhost
-      loop: snapshots_list
-      when: snapshots_list is defined
-
-    - name: Show final report data
-      debug:
-        var: report_snapshots
-      delegate_to: localhost
-
-    - name: Generate HTML
-      template:
-        src: snapshots_report.j2
-        dest: "{{ report_path }}"
-      run_once: true
-
-    - name: Send email
+    - name: Send email with snapshots list
       community.general.mail:
-        host: "{{ smtp_host }}"
+        host: "{{ smtp_server }}"
         port: "{{ smtp_port }}"
         from: "{{ email_from }}"
         to: "{{ email_to }}"
         subject: "{{ email_subject }}"
         subtype: html
-        body: "<html><body><h1>VMware Snapshots</h1><table border='1'><tr><th>VM Name</th><th>Created</th><th>Size GB</th></tr>{% for s in report_snapshots %}<tr><td>{{ s.vm_name }}</td><td>{{ s.created_at }}</td><td>{{ s.size }}</td></tr>{% endfor %}</table></body></html>"
-      run_once: true
+        body: |
+          <html>
+          <body>
+          <h2>VMware Snapshots Report</h2>
+          <p>Total snapshots: {{ snapshots_result.vmware_all_snapshots_info | length }}</p>
+          <table border="1" cellpadding="5">
+          <tr><th>VM Name</th><th>Snapshot Name</th><th>Description</th><th>Created</th><th>Size (GB)</th></tr>
+          {% for snap in snapshots_result.vmware_all_snapshots_info %}
+          <tr>
+            <td>{{ snap.vm_name }}</td>
+            <td>{{ snap.snapshot_name }}</td>
+            <td>{{ snap.description }}</td>
+            <td>{{ snap.creation_time }}</td>
+            <td>{{ snap.size_gb }}</td>
+          </tr>
+          {% endfor %}
+          </table>
+          </body>
+          </html>
