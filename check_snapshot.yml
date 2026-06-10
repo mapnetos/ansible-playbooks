@@ -8,7 +8,7 @@
     smtp_port: 25
     email_from: "ansible@yourdomain.com"
     email_to: "recipient@domain.com"
-    email_subject: "VMware Snapshots Report"
+    report_date: "{{ ansible_date_time.date | default(now() | strftime('%Y-%m-%d')) }}"
     
     # Report file
     report_file: "/tmp/snapshots.html"
@@ -30,7 +30,7 @@
         port: "{{ smtp_port }}"
         from: "{{ email_from }}"
         to: "{{ email_to }}"
-        subject: "{{ email_subject }}"
+        ssubject: "VMware Snapshots Report - {{ report_date }}"
         subtype: html
         body: |
           <html>
