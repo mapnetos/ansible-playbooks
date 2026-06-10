@@ -16,6 +16,7 @@
   tasks:
     - name: Gather all VMware snapshots
       community.vmware.vmware_all_snapshots_info:
+        datacenter: "{{ datacenter }}"
         validate_certs: false
       register: snapshots_result
 
