@@ -1,0 +1,9 @@
+---
+- name: Run XLS migration to ansible inventory
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Run Python script
+      ansible.builtin.script: main.py
+      args:
+        executable: /usr/bin/python3
