@@ -10,16 +10,16 @@
 
 - name: Run on dynamic hosts
   hosts: dynamic_targets
-  variables:
-    - ansible_port: 5985
-    - ansible_connection: winrm
-    - ansible_winrm_transport: ntlm
-    - ansible_winrm_server_cert_validation: ignore
   gather_facts: no
+  vars:
+    ansible_port: 5985
+    ansible_connection: winrm
+    ansible_winrm_transport: ntlm
+    ansible_winrm_server_cert_validation: ignore
   tasks:
-    - debug:
+    - name: Debug target host
+      debug:
         msg: "Running on {{ inventory_hostname }}"
 
-
     - name: Set new Windows product key
-      win_shell: "cscript.exe C:\\Windows\\System32\\slmgr.vbs /ipk {{ inventory_hostname }}"
+      win_shell: 'cscript.exe //Nologo C:\Windows\System32\slmgr.vbs /ipk {{ serial_number }}'
