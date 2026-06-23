@@ -10,6 +10,11 @@
 
 - name: Run on dynamic hosts
   hosts: dynamic_targets
+  variables:
+    - ansible_port: 5985
+    - ansible_connection: winrm
+    - ansible_winrm_transport: ntlm
+    - ansible_winrm_server_cert_validation: ignore
   gather_facts: no
   tasks:
     - debug:
