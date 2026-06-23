@@ -1,5 +1,20 @@
 - name: Setting Machine Serial
-  hosts: target_hosts
+  hosts: localhost
+  gather_facts: no
   tasks:
+    - name: Add each target host to a temporary group
+      ansible.builtin.add_host:
+        name: "{{ item }}"
+        groups: dynamic_targets
+      loop: "{{ target_hosts }}"
+
+- name: Run on dynamic hosts
+  hosts: dynamic_targets
+  gather_facts: no
+  tasks:
+    - debug:
+        msg: "Running on {{ inventory_hostname }}"
+
+
     - name: Set new Windows product key
-      win_shell: "cscript.exe C:\\Windows\\System32\\slmgr.vbs /ipk {{ serial_number }}"
+      win_shell: "cscript.exe C:\\Windows\\System32\\slmgr.vbs /ipk {{ inventory_hostname }}"
