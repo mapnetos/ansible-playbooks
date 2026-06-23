@@ -1,5 +1,5 @@
 - name: Setting Machine Serial
-  hosts: "{{ target_hosts }}"
+  hosts: target_hosts
   tasks:
     - name: Set new Windows product key
       win_shell: "cscript.exe C:\\Windows\\System32\\slmgr.vbs /ipk {{ serial_number }}"
