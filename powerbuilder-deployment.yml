@@ -1,0 +1,20 @@
+- name: powerbuilder deployment
+  hosts: all
+  gather_facts: yes
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+ 
+  tasks:
+    - name: Run hostname command
+      ansible.windows.win_shell: hostname
+      register: hostname_output
+
+    - name: Get product id and product key
+      community.windows.win_product_facts:
+    
+    - name: Print OS details
+      debug:
+        msg: >
+          <td class="">{{ hostname_output.stdout | trim }}</td><td class="">{{ ansible_distribution | trim }}</td><td class="warning">{{ ansible_os_license_status | trim | join }}</td> <td>      <form action="http://10.83.102.194:31906/#/templates/job_template/48" method="POST" style="display:inline;">        <input type="text" name="limit" value={{ hostname_output.stdout | trim }}>        <input type="hidden" name="extra_vars" value='{"ansible_port":5985,"ansible_connection":"winrm"}'>    <input type="text" name="serial" value='{"serial":XXXXX-XXXXXX-XXXXXXX-XXXXXX-XXXXXX"}'>    <button type="submit" style="border:none;background:none;cursor:pointer;padding:5px;">          ▶️ Executar Template 48        </button>      </form>    </td>
+      when: ansible_os_license_status != "Licensed"
+      register: debug_output
